@@ -12,10 +12,11 @@ for i=1:size(pts,2)
     res = res * scale;
     fwdWarp(:,i) = res(1:2,:);
 end
-
+% 
 % imshow(refIm)
 % hold on;
 % plot(fwdWarp(1,:), fwdWarp(2,:),'r.', 'MarkerSize', 25);
+% axis on 
 
 %% determine bounding box
 [r,c,~] = size(refIm);
@@ -33,10 +34,52 @@ box = [box_x; box_y];
 % hold on;
 % plot(pts(1,:), pts(2,:),'r.', 'MarkerSize', 25);
 % plot(box_x, box_y,'b.', 'MarkerSize', 25);
+% axis on
 
 %% do inverse warp
 
-%% get ref image pixel values in corresponding pixels
+% y = no. rows, x = no. cols
 
+max_x = ceil(max(box_x));
+min_x = ceil(min(box_x));
+max_y = ceil(max(box_y));
+min_y = ceil(min(box_y));
+
+width = (max_x - min_x) + 1;
+height = (max_y - min_y) + 1;
+
+offset_x = min_x - 1;
+offset_y = min_y - 1;
+
+[X, Y] = meshgrid(1:width, 1:height);
+X = X + offset_x;
+Y = Y + offset_y;
+box_pts = [X(:)'; Y(:)']; % Create homogeneous coordinates
+box_pts(3,:) = 1;
+
+invWarp = inv(H) * box_pts; % do inverse warp
+invWarp = invWarp(1:2,:) ./ invWarp(3,:); % get the image coordinates
+
+% Description from Piazza:
+% interp2(V,X1,Y1)
+% V = separated R,G,or B values of input image converted to double form
+% X1, Y1 = points transformed by inverse homography matrix
+
+x_pts = invWarp(1,:);
+y_pts = invWarp(2,:);
+inputImDouble = im2double(inputIm);
+warpIm = zeros(height, width, 3);
+
+for channel=1:3
+    color = interp2(inputImDouble(:,:,channel), x_pts, y_pts);
+    nan_idx = isnan(color);
+    color(nan_idx) = 0;
+    warpIm(:,:,channel) = reshape(color, height, width);
+end
+
+% imshow(warpIm)
+% axis on;
+
+%% get ref image pixel values in corresponding pixels
 end
 
