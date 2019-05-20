@@ -12,8 +12,8 @@ for i=1:size(pts,2)
     res = res * scale;
     fwdWarp(:,i) = res(1:2,:);
 end
-% 
-% imshow(refIm)
+
+% imshow(refIm, 'InitialMagnification', 200)
 % hold on;
 % plot(fwdWarp(1,:), fwdWarp(2,:),'r.', 'MarkerSize', 25);
 % axis on 
@@ -36,9 +36,7 @@ box = [box_x; box_y];
 % plot(box_x, box_y,'b.', 'MarkerSize', 25);
 % axis on
 
-%% do inverse warp
-
-% y = no. rows, x = no. cols
+%% get ref image pixel values in corresponding pixels
 
 max_x = ceil(max(box_x));
 min_x = ceil(min(box_x));
@@ -54,6 +52,26 @@ offset_y = min_y - 1;
 [X, Y] = meshgrid(1:width, 1:height);
 X = X + offset_x;
 Y = Y + offset_y;
+
+x_ref = X(:)';
+y_ref = Y(:)';
+refImDouble = im2double(refIm);
+adjustedRef = zeros(height, width, 3);
+
+for channel=1:3
+    color = interp2(refImDouble(:,:,channel), x_ref, y_ref);
+    nan_idx = isnan(color);
+    color(nan_idx) = 0;
+    adjustedRef(:,:,channel) = reshape(color, height, width);
+end
+
+mergeIm = adjustedRef;
+
+% imshow(mergeIm)
+% axis on;
+
+%% do inverse warp
+
 box_pts = [X(:)'; Y(:)']; % Create homogeneous coordinates
 box_pts(3,:) = 1;
 
@@ -68,8 +86,7 @@ invWarp = invWarp(1:2,:) ./ invWarp(3,:); % get the image coordinates
 x_pts = invWarp(1,:);
 y_pts = invWarp(2,:);
 inputImDouble = im2double(inputIm);
-warpIm = zeros(height, width, 3);
-
+ 
 for channel=1:3
     color = interp2(inputImDouble(:,:,channel), x_pts, y_pts);
     nan_idx = isnan(color);
@@ -77,32 +94,8 @@ for channel=1:3
     warpIm(:,:,channel) = reshape(color, height, width);
 end
 
-% imshow(warpIm)
-% axis on;
-
-%% get ref image pixel values in corresponding pixels
-
-x_ref = X(:)';
-y_ref = Y(:)';
-refImDouble = im2double(refIm);
-adjustedRef = zeros(height, width, 3);
-
-for channel=1:3
-    color = interp2(refImDouble(:,:,channel), x_ref, y_ref);
-    nan_idx = isnan(color);
-    color(nan_idx) = 0;
-    adjustedRef(:,:,channel) = reshape(color, height, width);
-end
-
-mergeIm = warpIm;
-
-for r=1:height
-    for c=1:width
-        if (adjustedRef(r,c,:) ~= 0) % leave it if 0, otherwise the warpIm wouldn't show
-            mergeIm(r,c,:) = adjustedRef(r,c,:);
-        end
-    end
-end
+nonzeroIdx = warpIm > 0;
+mergeIm(nonzeroIdx) = warpIm(nonzeroIdx);
 
 % imshow(mergeIm)
 % axis on;
