@@ -81,5 +81,31 @@ end
 % axis on;
 
 %% get ref image pixel values in corresponding pixels
+
+x_ref = X(:)';
+y_ref = Y(:)';
+refImDouble = im2double(refIm);
+adjustedRef = zeros(height, width, 3);
+
+for channel=1:3
+    color = interp2(refImDouble(:,:,channel), x_ref, y_ref);
+    nan_idx = isnan(color);
+    color(nan_idx) = 0;
+    adjustedRef(:,:,channel) = reshape(color, height, width);
+end
+
+mergeIm = warpIm;
+
+for r=1:height
+    for c=1:width
+        if (adjustedRef(r,c,:) ~= 0) % leave it if 0, otherwise the warpIm wouldn't show
+            mergeIm(r,c,:) = adjustedRef(r,c,:);
+        end
+    end
+end
+
+% imshow(mergeIm)
+% axis on;
+
 end
 
